@@ -8,7 +8,7 @@ from typing import Any, Generic, TypeGuard, TypeVar
 from pytest_mh import MultihostRole
 from pytest_mh.cli import CLIBuilder
 from pytest_mh.utils.firewall import LinuxFirewalld, WindowsFirewall
-from pytest_mh.utils.fs import LinuxFileSystem
+from ..utils.fs import LinuxFileSystem
 from pytest_mh.utils.services import SystemdServices
 
 from ..hosts.base import BaseHost, BaseLDAPDomainHost
