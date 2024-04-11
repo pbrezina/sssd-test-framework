@@ -40,15 +40,6 @@ class LDAPHost(BaseLDAPDomainHost):
         # Backup of original data
         self.__backup: dict[str, dict[str, list[bytes]]] = {}
 
-    def pytest_setup(self) -> None:
-        # Start ldap before properties are enumerated in MultihostUtility
-        self._start()
-
-    def setup(self) -> None:
-        # Make sure ldap is running for each test
-        super().setup()
-        self._start()
-
     @property
     def features(self) -> dict[str, bool]:
         """
@@ -77,6 +68,22 @@ class LDAPHost(BaseLDAPDomainHost):
         self.logger.info("Detected features:", extra={"data": {"Features": self._features}})
 
         return self._features
+
+    def pytest_setup(self):
+        super().pytest_setup()
+        self.fs.write("/root/fstest", "host.pytest_setup")
+
+    def setup(self):
+        super().setup()
+        self.fs.write("/root/fstest", "host.setup")
+
+    def teardown(self):
+        self.logger.info(f"*********** host.teardown {self.fs.read('/root/fstest')}")
+        super().teardown()
+
+    def pytest_teardown(self):
+        self.logger.info(f"*********** host.pytest_teardown {self.fs.read('/root/fstest')}")
+        super().pytest_teardown()
 
     def backup(self) -> None:
         """

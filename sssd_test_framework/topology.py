@@ -132,6 +132,24 @@ class SSSDTopologyMark(TopologyMark):
         return cls(name, topology, controller=controller, fixtures=fixtures, domains=domains)
 
 
+class MyControler(TopologyController):
+    def topology_setup(self, ldap):
+        super().topology_setup()
+        ldap.fs.write("/root/fstest", "topology.topology_setup")
+
+    def setup(self, ldap):
+        super().setup()
+        ldap.fs.write("/root/fstest", "topology.setup")
+
+    def teardown(self, ldap):
+        self.logger.info(f"*********** topology.teardown {ldap.fs.read('/root/fstest')}")
+        super().teardown()
+
+    def topology_teardown(self, ldap):
+        self.logger.info(f"*********** topology.topology_teardown {ldap.fs.read('/root/fstest')}")
+        super().topology_teardown()
+
+
 @final
 @unique
 class KnownTopology(KnownTopologyBase):
@@ -164,6 +182,7 @@ class KnownTopology(KnownTopologyBase):
         fixtures=dict(
             client="sssd.client[0]", ldap="sssd.ldap[0]", provider="sssd.ldap[0]", nfs="sssd.nfs[0]", kdc="sssd.kdc[0]"
         ),
+        controller=MyControler()
     )
     """
     .. topology-mark:: KnownTopology.LDAP

@@ -9,6 +9,7 @@ import ldap
 from ldap.ldapobject import ReconnectLDAPObject
 from pytest_mh import MultihostHost
 from pytest_mh.ssh import SSHPowerShellProcess
+from pytest_mh.utils.fs import LinuxFileSystem
 
 from ..config import SSSDMultihostDomain
 
@@ -18,6 +19,24 @@ __all__ = [
     "BaseDomainHost",
     "BaseLDAPDomainHost",
 ]
+
+
+class MyUtils(LinuxFileSystem):
+    def setup(self):
+        self.logger.info("myutils setup")
+
+    def teardown(self) -> None:
+        self.logger.info("myutils teardown")
+
+    def __enter__(self) -> LinuxFileSystem:
+        super().__enter__()
+        self.logger.info("myutils enter")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.logger.info("myutils exit")
+        #raise ValueError("bla")
+        return super().__exit__(exc_type, exc_val, exc_tb)
 
 
 class BaseHost(MultihostHost[SSSDMultihostDomain]):
@@ -139,6 +158,8 @@ class BaseDomainHost(BaseBackupHost):
 
         self.realm: str = self.config.get("realm", self.domain.upper())
         """Kerberos realm."""
+
+        self.fs: MyUtils = MyUtils(self)
 
 
 class BaseLDAPDomainHost(BaseDomainHost):
