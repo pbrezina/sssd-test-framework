@@ -170,6 +170,7 @@ class SSSDMultihostDomain(MultihostDomain[SSSDMultihostConfig]):
         from .hosts.ldap import LDAPHost
         from .hosts.nfs import NFSHost
         from .hosts.samba import SambaHost
+        from .hosts.base import BaseLinuxHost
 
         return {
             "ad": ADHost,
@@ -180,6 +181,7 @@ class SSSDMultihostDomain(MultihostDomain[SSSDMultihostConfig]):
             "nfs": NFSHost,
             "kdc": KDCHost,
             "keycloak": KeycloakHost,
+            "*": BaseLinuxHost,
         }
 
     @property
@@ -197,6 +199,7 @@ class SSSDMultihostDomain(MultihostDomain[SSSDMultihostConfig]):
         from .roles.ldap import LDAP
         from .roles.nfs import NFS
         from .roles.samba import Samba
+        from .roles.base import BaseLinuxRole
 
         return {
             "client": Client,
@@ -207,4 +210,5 @@ class SSSDMultihostDomain(MultihostDomain[SSSDMultihostConfig]):
             "nfs": NFS,
             "kdc": KDC,
             "keycloak": Keycloak,
+            "*": BaseLinuxRole,
         }

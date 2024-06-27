@@ -40,6 +40,12 @@ class KnownTopology(KnownTopologyBase):
             assert True
     """
 
+    VagrantFedora = SSSDTopologyMark(
+        name="vagrant-fedora",
+        topology=Topology(TopologyDomain("sssd", vagrant=1)),
+        fixtures=dict(vagrant="sssd.vagrant[0]"),
+    )
+
     Client = SSSDTopologyMark(
         name="client",
         topology=Topology(TopologyDomain("sssd", client=1, kdc=1)),
