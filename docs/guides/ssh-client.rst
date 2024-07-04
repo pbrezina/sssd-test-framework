@@ -1,7 +1,7 @@
 Connecting to host via SSH
 ##########################
 
-You can use :class:`pytest_mh.ssh.SSHClient` to connect to any host as any
+You can use :class:`pytest_mh.ssh.Connection` to connect to any host as any
 user. It is not recommended to instantiate this class on yourself but you should
 rather use :meth:`pytest_mh.MultihostRole.ssh` to get the client
 object.
