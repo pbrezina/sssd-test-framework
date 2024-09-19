@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -174,6 +175,11 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         backup_path = str(backup_data)
         self.logger.info(f"Restoring IPA server from {backup_path}")
 
+        self.conn.run("truncate --size 0 /var/log/dirsrv/slapd-IPA-TEST/errors")
+        self.conn.run("truncate --size 0 /var/log/dirsrv/slapd-IPA-TEST/access")
+        self.conn.run("truncate --size 0 /var/log/dirsrv/slapd-IPA-TEST/audit")
+        self.conn.run("truncate --size 0 /var/log/dirsrv/slapd-IPA-TEST/security")
+        self.conn.run("truncate --size 0 /var/log/iparestore.log")
         self.conn.run(
             f"""
             set -ex
@@ -185,7 +191,9 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                 fi
             }}
 
+            dsconf slapd-IPA-TEST config replace nsslapd-plugin-logging=on nsslapd-accesslog-level=260
             ipa-restore --unattended --password "{self.adminpw}" --data --online "{backup_path}/ipa"
+            dsconf slapd-IPA-TEST config replace nsslapd-plugin-logging=off nsslapd-accesslog-level=256
 
             rm --force --recursive /etc/sssd /var/lib/sss /var/log/sssd
             restore "{backup_path}/krb5.conf" /etc/krb5.conf
@@ -196,4 +204,10 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
             """,
             log_level=ProcessLogLevel.Error,
         )
+        time.sleep(31)
+        self.conn.run("cat /var/log/iparestore.log")
+        self.conn.run("cat /var/log/dirsrv/slapd-IPA-TEST/errors")
+        self.conn.run("cat /var/log/dirsrv/slapd-IPA-TEST/access")
+        self.conn.run("cat /var/log/dirsrv/slapd-IPA-TEST/audit")
+        self.conn.run("cat /var/log/dirsrv/slapd-IPA-TEST/security")
         self.svc.restart("sssd.service")
