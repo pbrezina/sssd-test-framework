@@ -159,7 +159,12 @@ class ClientHost(BaseHost, BaseLinuxHost):
                 fi
             }}
 
-            rm --force --recursive /etc/sssd /var/lib/sss /var/log/sssd /home/*
+            ls -la /etc/sssd /var/lib/sss /var/log/sssd /home/* || :
+            if ! rm --force --recursive /etc/sssd /var/lib/sss /var/log/sssd /home/*; then
+                echo "Failed to remove directories, showing contents again:"
+                ls -la /etc/sssd /var/lib/sss /var/log/sssd /home/* || :
+                exit 1
+            fi
             restore "{backup_path}/krb5.conf" /etc/krb5.conf
             restore "{backup_path}/krb5.keytab" /etc/krb5.keytab
             restore "{backup_path}/config" /etc/sssd

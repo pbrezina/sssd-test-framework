@@ -219,7 +219,12 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
 
                 set -e
 
-                rm --force --recursive /etc/sssd /var/lib/sss /var/log/sssd
+                ls -la /etc/sssd /var/lib/sss /var/log/sssd || :
+                if ! rm --force --recursive /etc/sssd /var/lib/sss /var/log/sssd; then
+                    echo "Failed to remove directories, showing contents again:"
+                    ls -la /etc/sssd /var/lib/sss /var/log/sssd || :
+                    exit 1
+                fi
                 restore "{backup_path}/krb5.conf" /etc/krb5.conf
                 restore "{backup_path}/krb5.keytab" /etc/krb5.keytab
                 restore "{backup_path}/config" /etc/sssd

@@ -57,7 +57,7 @@ class NetworkUtils(MultihostUtility[MultihostHost]):
 
         self.__fs.backup(pcap_path)
 
-        command = SSHKillableProcess(self.host.conn, ["tcpdump", *args, "-w", pcap_path])
+        command = SSHKillableProcess(self.host.conn, ["tcpdump", *args, "-Z", "root", "-w", pcap_path])
 
         # tcpdump requires some time to process and capture packets
         command.kill_delay = 1
@@ -76,7 +76,12 @@ class NetworkUtils(MultihostUtility[MultihostHost]):
         if args is None:
             args = []
 
-        return self.host.conn.exec(["tshark", *args])
+        return self.host.conn.run(f"""
+        ls -l /tmp/sssd.pcap || :
+        tshark {" ".join(args)}
+        """)
+
+        # return self.host.conn.exec(["tshark", *args])
 
     def dig(self, address: str, server: str | None = None, attempts: int = 30, delay: int = 2) -> list[dict] | None:
         """
