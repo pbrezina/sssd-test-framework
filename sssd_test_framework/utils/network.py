@@ -57,7 +57,9 @@ class NetworkUtils(MultihostUtility[MultihostHost]):
 
         self.__fs.backup(pcap_path)
 
-        command = SSHKillableProcess(self.host.conn, ["tcpdump", *args, "-w", pcap_path])
+        # tshark running as root cannot read files owned by tcpdump from /tmp on
+        # ubuntu-26-04 runner, keep root as the owner (-Z root) fixes it.
+        command = SSHKillableProcess(self.host.conn, ["tcpdump", *args, "-Z", "root", "-w", pcap_path])
 
         # tcpdump requires some time to process and capture packets
         command.kill_delay = 1
