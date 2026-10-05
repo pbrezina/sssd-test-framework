@@ -62,7 +62,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         self._features: dict[str, bool] | None = None
 
         self._broken_reason: str | None = None
-        """Set when backup/restore failed and the host did not recover, see :meth:`kinit`."""
+        """Set when backup/restore failed and the host did not recover"""
 
         # Additional client configuration
         self.client.setdefault("id_provider", "ipa")
@@ -127,9 +127,6 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         """
         Obtain ``admin`` user Kerberos TGT.
         """
-        if self._broken_reason is not None:
-            raise RuntimeError(self._broken_reason)
-
         self.conn.exec(["kinit", "admin"], input=self.adminpw)
 
     def start(self) -> None:
@@ -224,8 +221,10 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         if not isinstance(backup_data, PurePosixPath):
             raise TypeError(f"Expected PurePosixPath, got {type(backup_data)}")
 
-        # Bind sometimes fails: https://pagure.io/freeipa/issue/9669
-        @retry_command(delay=0, match_stderr="Unable to bind to LDAP server", check_rc=False)
+        # ipa-restore sometimes fail on race conditions, retry it and if it
+        # still fails then mark the host as broken so subsequent tests can
+        # be skipped
+        @retry_command(max_retries=3, delay=1)
         def _restore():
             return self.conn.run(
                 f"""
