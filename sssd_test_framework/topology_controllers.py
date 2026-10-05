@@ -4,6 +4,7 @@ import re
 import tempfile
 import textwrap
 
+from pytest import skip
 from pytest_mh import BackupTopologyController
 from pytest_mh.conn import ProcessResult
 
@@ -58,7 +59,21 @@ class ProvisionedBackupTopologyController(BackupTopologyController[SSSDMultihost
 
         super().topology_teardown(*args, **kwargs)
 
+    def setup(self) -> None:
+        for host in self.hosts:
+            if getattr(host, "is_broken", False):
+                skip(f"Host {host.role}:{host.hostname} is broken and can not be recovered, skipping tests")
+
+        super().setup()
+
     def teardown(self) -> None:
+        # If there is a broken host, we need to stop. Test setup did not start
+        # yet as self.setup shortcut. There are not changes and no need for
+        # a teardown.
+        for host in self.hosts:
+            if getattr(host, "is_broken", False):
+                return
+
         if self.provisioned:
             self.restore_vanilla()
             return

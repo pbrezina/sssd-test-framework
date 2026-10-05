@@ -61,6 +61,9 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
 
         self._features: dict[str, bool] | None = None
 
+        self._broken_reason: str | None = None
+        """Set when backup/restore failed and the host did not recover, see :meth:`kinit`."""
+
         # Additional client configuration
         self.client.setdefault("id_provider", "ipa")
         self.client.setdefault("access_provider", "ipa")
@@ -111,6 +114,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         """
         Truncate existing IPA logs before each test to avoid need for restart.
         """
+
         self.conn.run("""
             set -ex
             truncate --size 0 /var/log/dirsrv/*/*
@@ -123,37 +127,29 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         """
         Obtain ``admin`` user Kerberos TGT.
         """
+        if self._broken_reason is not None:
+            raise RuntimeError(self._broken_reason)
+
         self.conn.exec(["kinit", "admin"], input=self.adminpw)
-
-    def _ensure_ipa_running(self) -> None:
-        """
-        Best-effort recovery when backup/restore left IPA services stopped.
-        """
-        self.conn.run(
-            "ipactl start || systemctl start ipa",
-            log_level=ProcessLogLevel.Error,
-            raise_on_error=False,
-            timeout=IPA_RECOVERY_TIMEOUT,
-        )
-
-    def _recover_ipa_after_failure(self, operation: str) -> None:
-        """
-        Try to start IPA after a failed backup/restore without masking the original error.
-        """
-        self.logger.warning(f"IPA {operation} failed, attempting to start IPA services")
-        try:
-            self._ensure_ipa_running()
-        except Exception:
-            self.logger.warning(
-                f"Failed to start IPA services after {operation} failure",
-                exc_info=True,
-            )
 
     def start(self) -> None:
         self.svc.start("ipa.service")
 
     def stop(self) -> None:
         self.svc.stop("ipa.service")
+
+    def _mark_host_as_broken(self, operation: str) -> None:
+        """
+        Mark the IPA host as completely broken, unusable for next tests.
+        """
+        self._broken_reason = f"IPA host did not recover after a failed {operation}."
+        self.logger.warning(
+            f"Failed to recover IPA after {operation}, further tests using IPA host will fail fast"
+        )
+
+    @property
+    def is_broken(self) -> bool:
+        return self._broken_reason is not None
 
     def backup(self) -> Any:
         """
@@ -208,7 +204,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         try:
             result = _backup()
         except (ProcessTimeoutError, ProcessError):
-            self._recover_ipa_after_failure("backup")
+            self._mark_host_as_broken("ipa-backup")
             raise
         return PurePosixPath(result.stdout_lines[-1].strip())
 
@@ -269,6 +265,6 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         try:
             _restore()
         except (ProcessTimeoutError, ProcessError):
-            self._recover_ipa_after_failure("restore")
+            self._mark_host_as_broken("ipa-restore")
             raise
         self.svc.restart("sssd.service")
