@@ -79,7 +79,10 @@ class SSHKillableProcess(object):
         if self.__killed:
             return
 
-        self.client.run(f"sleep {self.kill_delay}; kill {self.pid}")
+        # The process may have already exited on its own by the time we get here
+        # (e.g. it errored out early). Only send the signal if it is still alive,
+        # to avoid a harmless "No such process" error racing with its exit.
+        self.client.run(f"sleep {self.kill_delay}; if kill -0 {self.pid} 2>/dev/null; then kill {self.pid}; fi")
         self.__killed = True
 
     def __enter__(self) -> SSHKillableProcess:
