@@ -184,7 +184,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                 }
 
                 rm --force /var/log/ipabackup.log
-                ipa-backup
+                ipa-backup --data
                 ret=$?
                 if [ $ret -ne 0 ]; then
                     echo "Printing ipa-backup logs..."
@@ -235,7 +235,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         # ipa-restore sometimes fail on race conditions, retry it and if it
         # still fails then mark the host as broken so subsequent tests can
         # be skipped
-        @retry_command(max_retries=3, delay=1)
+        #@retry_command(max_retries=3, delay=1)
         def _restore():
             return self.conn.run(
                 f"""
@@ -249,7 +249,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                 }}
 
                 rm --force /var/log/iparestore.log
-                ipa-restore --unattended --password "{self.adminpw}" "{backup_path}/ipa"
+                ipa-restore --unattended --password "{self.adminpw}" --data "{backup_path}/ipa"
                 ret=$?
                 if [ $ret -ne 0 ]; then
                     echo "Printing ipa-restore logs..."
@@ -259,7 +259,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                     systemctl status dirsrv@IPA-TEST.service
 
                     echo "Printing LDAP logs..."
-                    for i in /var/log/dirsrv/slapd-IPA-TEST/*; do echo "LDAP:$i"; cat $i; echo -e "LDAP:done:$i\n\n"; done
+                    for i in /var/log/dirsrv/slapd-IPA-TEST/* /var/lib/dirsrv/slapd-IPA-TEST/ldif/IPA-TEST-userRoot.ldif; do echo "LDAP:$i"; cat $i; echo -e "LDAP:done:$i\n\n"; done
                     exit $ret
                 fi
 
