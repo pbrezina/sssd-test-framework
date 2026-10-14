@@ -184,7 +184,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                 }
 
                 rm --force /var/log/ipabackup.log
-                ipa-backup --data
+                ipa-backup
                 ret=$?
                 if [ $ret -ne 0 ]; then
                     echo "Printing ipa-backup logs..."
@@ -249,7 +249,7 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                 }}
 
                 rm --force /var/log/iparestore.log
-                ipa-restore --unattended --password "{self.adminpw}" --data "{backup_path}/ipa"
+                ipa-restore --unattended --password "{self.adminpw}" "{backup_path}/ipa"
                 ret=$?
                 if [ $ret -ne 0 ]; then
                     echo "Printing ipa-restore logs..."
