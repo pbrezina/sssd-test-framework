@@ -127,7 +127,18 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
         """
         Obtain ``admin`` user Kerberos TGT.
         """
-        self.conn.exec(["kinit", "admin"], input=self.adminpw)
+        try:
+            self.conn.exec(["kinit", "admin"], input=self.adminpw)
+        except Exception:
+            self.conn.run("""
+                echo "Printing LDAP status..."
+                systemctl status dirsrv@IPA-TEST.service
+
+                echo "Printing LDAP logs..."
+                for i in /var/log/dirsrv/slapd-IPA-TEST/*; do echo "LDAP:$i"; cat $i; echo -e "LDAP:done:$i\n\n"; done
+            """)
+            raise
+
 
     def start(self) -> None:
         self.svc.start("ipa.service")
@@ -243,6 +254,12 @@ class IPAHost(BaseDomainHost, BaseLinuxHost):
                 if [ $ret -ne 0 ]; then
                     echo "Printing ipa-restore logs..."
                     cat /var/log/iparestore.log
+
+                    echo "Printing LDAP status..."
+                    systemctl status dirsrv@IPA-TEST.service
+
+                    echo "Printing LDAP logs..."
+                    for i in /var/log/dirsrv/slapd-IPA-TEST/*; do echo "LDAP:$i"; cat $i; echo -e "LDAP:done:$i\n\n"; done
                     exit $ret
                 fi
 
